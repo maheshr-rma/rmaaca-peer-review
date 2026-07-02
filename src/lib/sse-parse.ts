@@ -67,8 +67,11 @@ export async function consumeSSEStream(
   };
 
   if (obj.error) {
-    const msg = typeof obj.error === "string" ? obj.error : obj.error.message;
-    throw new Error(msg || "SDK returned an error object.");
+    const msg =
+      typeof obj.error === "string"
+        ? obj.error
+        : JSON.stringify(obj.error);
+    throw new Error(`SDK error: ${msg}`);
   }
 
   if (obj.choices?.[0]?.message?.content) {
