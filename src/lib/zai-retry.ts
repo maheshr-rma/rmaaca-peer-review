@@ -8,6 +8,7 @@ import type ZAI from "z-ai-web-dev-sdk";
  */
 
 const MAX_RETRIES = 3;
+const MODEL = "glm-4.5-flash"; // free tier — see Z.ai pricing page
 
 function isRetryable(err: unknown): boolean {
   const msg = (err as Error)?.message ?? "";
@@ -32,12 +33,19 @@ export async function createStreamWithRetry(
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
       const result = await zai.chat.completions.create({
+        model: MODEL,
         messages,
         thinking: { type: "disabled" },
         stream: true,
       });
       return result as ReadableStream<Uint8Array>;
     } catch (err) {
+      console.error(
+        "[ZAI SDK exception - stream]",
+        err instanceof Error
+          ? { message: err.message, stack: err.stack, ...(err as any) }
+          : err
+      );
       lastErr = err;
       if (!isRetryable(err) || attempt === MAX_RETRIES - 1) throw err;
       const backoff = Math.min(
@@ -61,6 +69,7 @@ export async function createJsonWithRetry(
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
       const result = await zai.chat.completions.create({
+        model: MODEL,
         messages,
         thinking: { type: "disabled" },
       });
@@ -68,6 +77,12 @@ export async function createJsonWithRetry(
         choices?: Array<{ message?: { content?: string } }>;
       };
     } catch (err) {
+      console.error(
+        "[ZAI SDK exception - json]",
+        err instanceof Error
+          ? { message: err.message, stack: err.stack, ...(err as any) }
+          : err
+      );
       lastErr = err;
       if (!isRetryable(err) || attempt === MAX_RETRIES - 1) throw err;
       const backoff = Math.min(
