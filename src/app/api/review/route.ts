@@ -3,6 +3,7 @@ import ZAI from "z-ai-web-dev-sdk";
 import { AGENTS, REVIEWER_PERSONA, type AgentId } from "@/lib/agents";
 import { consumeSSEStream, extractDelta } from "@/lib/sse-parse";
 import { createJsonWithRetry, createStreamWithRetry } from "@/lib/zai-retry";
+import { ensureZaiConfig } from "@/lib/zai-config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,6 +57,7 @@ export async function POST(req: NextRequest) {
   }
 
   const encoder = new TextEncoder();
+
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const send = (obj: Record<string, unknown>) => {
@@ -64,6 +66,7 @@ export async function POST(req: NextRequest) {
 
       let zai: Awaited<ReturnType<typeof ZAI.create>>;
       try {
+        ensureZaiConfig();
         zai = await ZAI.create();
       } catch (err) {
         send({ type: "error", message: (err as Error).message });
@@ -105,6 +108,7 @@ Respond with ONLY a valid JSON object (no markdown fences, no commentary) in exa
 The "scores" array MUST contain exactly ${validResponses.length} entries — one per response — using these exact id strings: ${idList}. Use each id exactly once.`;
 
       let scoresJson: { scores: { id: string; score: number; rationale: string }[] } | null = null;
+
       try {
         const scoringCompletion = await createJsonWithRetry(zai, [
           { role: "assistant", content: REVIEWER_PERSONA },
@@ -114,7 +118,6 @@ The "scores" array MUST contain exactly ${validResponses.length} entries — one
         let raw = scoringCompletion.choices?.[0]?.message?.content ?? "";
         // Strip any accidental markdown fences
         raw = raw.replace(/```json\s*/gi, "").replace(/```\s*$/g, "").trim();
-
         // Try to extract the JSON object robustly
         const firstBrace = raw.indexOf("{");
         const lastBrace = raw.lastIndexOf("}");
@@ -142,6 +145,7 @@ The "scores" array MUST contain exactly ${validResponses.length} entries — one
           rawScores.find((s) => s.id === a.id) ??
           rawScores.find((s) => s.id?.toLowerCase() === a.id) ??
           rawScores[idx];
+
         return {
           id: a.id,
           name: a.name,
