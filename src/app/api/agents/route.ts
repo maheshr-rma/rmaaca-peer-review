@@ -13,9 +13,9 @@ export const dynamic = "force-dynamic";
  * Body: { prompt: string }
  *
  * Returns a Server-Sent Events stream. Three agents (Analytical, Creative,
- * Practical) run GLM-4.6 in parallel with distinct personas. Starts are
- * slightly staggered to avoid hitting upstream rate limits, and each agent
- * retries on 429/5xx with exponential backoff.
+ * Practical) run GLM-4.5-Flash in parallel with distinct personas. Starts are
+ * staggered to avoid hitting the free tier's tight rate limits, and each
+ * agent retries on 429/5xx with exponential backoff.
  *
  * Event types (each sent as `data: {json}\n\n`):
  *   { type: "session", prompt }
@@ -27,7 +27,7 @@ export const dynamic = "force-dynamic";
  *   { type: "all-done" }
  */
 
-const STAGGER_MS = 350;
+const STAGGER_MS = 2000; // widened from 350ms — free tier rate limits are tight
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
