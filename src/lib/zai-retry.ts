@@ -1,13 +1,14 @@
 import type ZAI from "z-ai-web-dev-sdk";
 
 /**
- * Retry helpers for z-ai-web-dev-sdk calls. The upstream API can return 429
- * (rate limit) or transient 5xx errors; these helpers wrap the create call
- * with exponential backoff so a brief rate-limit blip doesn't fail the whole
- * multi-agent run.
+ * Retry helpers for z-ai-web-dev-sdk calls. The upstream free tier can
+ * return 429 (rate limit) fairly easily, or transient 5xx errors; these
+ * helpers wrap the create call with exponential backoff — capped higher
+ * than a typical paid-tier setup, since free-tier rate limit windows
+ * tend to be longer.
  */
 
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 4;
 const MODEL = "glm-4.5-flash"; // free tier — see Z.ai pricing page
 
 function isRetryable(err: unknown): boolean {
@@ -49,8 +50,8 @@ export async function createStreamWithRetry(
       lastErr = err;
       if (!isRetryable(err) || attempt === MAX_RETRIES - 1) throw err;
       const backoff = Math.min(
-        800 * Math.pow(2, attempt) + Math.random() * 400,
-        6000,
+        1200 * Math.pow(2, attempt) + Math.random() * 600,
+        15000,
       );
       await sleep(backoff);
     }
@@ -86,8 +87,8 @@ export async function createJsonWithRetry(
       lastErr = err;
       if (!isRetryable(err) || attempt === MAX_RETRIES - 1) throw err;
       const backoff = Math.min(
-        800 * Math.pow(2, attempt) + Math.random() * 400,
-        6000,
+        1200 * Math.pow(2, attempt) + Math.random() * 600,
+        15000,
       );
       await sleep(backoff);
     }
