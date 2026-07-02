@@ -4,6 +4,7 @@ import { AGENTS, type AgentId } from "@/lib/agents";
 import { consumeSSEStream, extractDelta } from "@/lib/sse-parse";
 import { createStreamWithRetry, sleep } from "@/lib/zai-retry";
 import { ensureZaiConfig } from "@/lib/zai-config";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
 
       let zai: Awaited<ReturnType<typeof ZAI.create>>;
       try {
-       ensureZaiConfig();
+        ensureZaiConfig();
         zai = await ZAI.create();
       } catch (err) {
         send({ type: "fatal", message: (err as Error).message });
