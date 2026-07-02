@@ -1,12 +1,6 @@
 import { writeFileSync, existsSync } from "fs";
 import { join } from "path";
 
-/**
- * On platforms with a read-only filesystem (like Vercel), the
- * z-ai-web-dev-sdk can't find a .z-ai-config file unless we write
- * one ourselves. /tmp is always writable on Vercel's serverless
- * functions, so we write there directly.
- */
 const CONFIG_PATH = join("/tmp", ".z-ai-config");
 
 export function ensureZaiConfig() {
