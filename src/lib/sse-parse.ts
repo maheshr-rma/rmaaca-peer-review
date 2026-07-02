@@ -2,14 +2,11 @@
  * Parses a raw byte SSE stream (as returned by z-ai-web-dev-sdk when
  * `stream: true`) into individual JSON data payloads.
  *
- * The upstream API emits OpenAI-compatible SSE:
- *   data: {"choices":[{"delta":{"content":"Hello"}}]}\n\n
- *   data: {"choices":[{"delta":{"content":" world"}}]}\n\n
- *   data: [DONE]\n\n
- *
- * Handles both the Web Streams API (ReadableStream with getReader())
- * and Node.js Readable streams (async iterable), since the SDK's
- * return type can differ depending on the runtime.
+ * Handles three possible SDK return shapes:
+ *  1. Web Streams API ReadableStream (getReader())
+ *  2. Node.js Readable / async-iterable stream
+ *  3. A single already-parsed JSON completion object (non-streaming
+ *     fallback) — some accounts/models silently ignore `stream: true`.
  */
 export async function consumeSSEStream(
   stream: ReadableStream<Uint8Array> | AsyncIterable<Uint8Array | string> | unknown,
@@ -62,8 +59,28 @@ export async function consumeSSEStream(
     return;
   }
 
+  // Case 3: already-parsed non-streaming completion object.
+  // Some accounts return the full response even with stream:true.
+  const obj = stream as {
+    error?: { message?: string } | string;
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+
+  if (obj.error) {
+    const msg = typeof obj.error === "string" ? obj.error : obj.error.message;
+    throw new Error(msg || "SDK returned an error object.");
+  }
+
+  if (obj.choices?.[0]?.message?.content) {
+    // Emit the whole content as one "delta" so downstream code
+    // (which expects streamed chunks) still works — it just gets
+    // one big chunk instead of many small ones.
+    onData({ choices: [{ delta: { content: obj.choices[0].message.content } }] });
+    return;
+  }
+
   throw new Error(
-    `Unsupported stream type from SDK: ${typeof stream} (no getReader or async iterator).`
+    `Unsupported stream type from SDK: object. Shape: ${JSON.stringify(obj).slice(0, 200)}`
   );
 }
 
