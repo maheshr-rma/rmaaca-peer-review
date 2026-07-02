@@ -1,0 +1,41 @@
+# Build artifacts
+.next/
+out/
+
+# Dependencies
+node_modules/
+
+# Dev / runtime logs
+dev.log
+server.log
+*.log
+.zscripts/
+
+# Local env / config (NEVER bake secrets into the image by default)
+.z-ai-config
+.env
+.env.*
+!.env.example
+
+# Local database
+prisma/dev.db
+prisma/*.db-journal
+
+# Downloaded deliverables (screenshots, archives)
+download/
+
+# Version control & editor
+.git/
+.gitignore
+.github/
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docs (not needed in the runtime image)
+README-START-HERE.md
+*.md
+!prisma/*.md

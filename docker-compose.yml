@@ -1,0 +1,53 @@
+# =============================================================================
+# rmaaca.in — Docker Compose
+# =============================================================================
+# Easiest path to a running deployment:
+#
+#   1. Create your Z.ai config file in the project root:
+#        cat > .z-ai-config <<'EOF'
+#        {
+#          "baseUrl": "https://api.z.ai/api/paas/v4",
+#          "apiKey": "YOUR_ZAI_API_KEY"
+#        }
+#        EOF
+#
+#   2. Bring it up:
+#        docker compose up -d --build
+#
+#   3. Visit http://localhost:3000
+#
+#   4. Tail logs:
+#        docker compose logs -f
+#
+#   5. Tear down:
+#        docker compose down
+# =============================================================================
+
+services:
+  rmaaca-in:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: rmaaca-in:latest
+    container_name: rmaaca-in
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    # Mount the Z.ai config read-only at the path the SDK checks
+    volumes:
+      - ./.z-ai-config:/etc/.z-ai-config:ro
+    # SSE streams can take 60-90s; keep the connection alive
+    environment:
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    # Optional resource limits (the app is light — adjust to your host)
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
